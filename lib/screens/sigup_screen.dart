@@ -2,9 +2,8 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:uber/main.dart';
-
+import '../widgets/progress.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -96,7 +95,7 @@ class SignupScreen extends StatelessWidget {
                       onPrimary: Colors.black,
                     ),
                     onPressed: () {
-                      if (name.text.length > 4) {
+                      if (name.text.length < 4) {
                         displayMessage(
                             context, "Name must be atlest 3 character");
                       } else if (!email.text.contains("@")) {
@@ -104,7 +103,7 @@ class SignupScreen extends StatelessWidget {
                       } else if (phone.text.isEmpty) {
                         displayMessage(
                             context, "Valid phone number is required");
-                      } else if (password.text.length > 7) {
+                      } else if (password.text.length < 7) {
                         displayMessage(
                             context, "Password should be alteat 6 characters");
                       } else {
@@ -138,6 +137,12 @@ class SignupScreen extends StatelessWidget {
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   void registerUser(BuildContext context) async {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Progress("Registering");
+        });
+
     final User? firebaseUser = (await _firebaseAuth
             .createUserWithEmailAndPassword(
                 email: email.text, password: password.text)
@@ -161,11 +166,12 @@ class SignupScreen extends StatelessWidget {
           .pushNamedAndRemoveUntil(HomeScreen.route, (route) => true);
     } else {
       //error
+      Navigator.of(context).pop();
       displayMessage(context, "new user has not been registered");
     }
   }
 
-  void displayMessage(BuildContext context, String msg) {
-    Fluttertoast.showToast(msg: msg);
+  Widget displayMessage(BuildContext context, String msg) {
+    return SnackBar(content: Text(msg));
   }
 }

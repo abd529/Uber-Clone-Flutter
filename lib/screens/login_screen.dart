@@ -1,11 +1,21 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, sized_box_for_whitespace
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, sized_box_for_whitespace, unused_local_variable, prefer_interpolation_to_compose_strings, must_be_immutable, use_build_context_synchronously
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:uber/main.dart';
 import 'package:uber/screens/sigup_screen.dart';
+import 'package:uber/widgets/progress.dart';
+
+import 'home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   static const route = "login-screen";
-  const LoginScreen({Key? key}) : super(key: key);
+
+  TextEditingController email = TextEditingController();
+  TextEditingController password = TextEditingController();
+
+  LoginScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +33,7 @@ class LoginScreen extends StatelessWidget {
               child: Column(children: [
                 SizedBox(height: 15),
                 TextField(
+                  controller: email,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                       labelText: "Email",
@@ -37,6 +48,7 @@ class LoginScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 1),
                 TextField(
+                  controller: password,
                   obscureText: true,
                   decoration: InputDecoration(
                       labelText: "Password",
@@ -55,7 +67,9 @@ class LoginScreen extends StatelessWidget {
                       primary: Colors.yellow,
                       onPrimary: Colors.black,
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      loginUser(context);
+                    },
                     child: Container(
                         height: 50,
                         child: Center(
@@ -79,5 +93,48 @@ class LoginScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  void loginUser(BuildContext context) async {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Progress("Athenticating");
+        });
+
+    try {
+      UserCredential userCredential =
+          await _firebaseAuth.signInWithEmailAndPassword(
+              email: email.text, password: password.text);
+      final User? firebaseUser = userCredential.user;
+      if (firebaseUser != null) {
+        final DatabaseEvent event =
+            await userRef.child(firebaseUser.uid).once();
+        if (event.snapshot.value != null) {
+          Navigator.pushNamedAndRemoveUntil(
+              context, HomeScreen.route, (route) => false);
+          displayMessage(
+            context,
+            "Login successful",
+          );
+        } else {
+          Navigator.of(context).pop();
+          displayMessage(
+              context, "No records exist. Please create new account");
+          await _firebaseAuth.signOut();
+        }
+      } else {
+        Navigator.of(context).pop();
+        displayMessage(context, "Error: Cannot be signed in");
+      }
+    } catch (e) {
+      Navigator.of(context).pop();
+      displayMessage(context, e.toString());
+    }
+  }
+
+  Widget displayMessage(BuildContext context, String msg) {
+    return SnackBar(content: Text(msg));
   }
 }

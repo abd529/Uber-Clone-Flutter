@@ -24,8 +24,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Uber App',
-      theme: ThemeData(fontFamily: "Brand-Bold", primarySwatch: Colors.yellow),
-      home: SignupScreen(),
+      theme: ThemeData(fontFamily: "Brand-Bold", primaryColor: Colors.black),
+      home: HomeScreen(),
       routes: {
         LoginScreen.route: (ctx) => LoginScreen(),
         SignupScreen.route: (ctx) => SignupScreen(),
