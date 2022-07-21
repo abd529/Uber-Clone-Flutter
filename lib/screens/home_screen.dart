@@ -1,9 +1,11 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, unused_field
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, unused_field, unused_local_variable, unused_local_variable
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:uber/widgets/drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   static const route = "/home";
@@ -18,6 +20,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late GoogleMapController newMapController;
 
+  late Position currentPosition;
+  var geoLocator = Geolocator();
+  double bottomPadding = 0;
+
+  void positionLocator() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    currentPosition = position;
+
+    LatLng latLngPosition = LatLng(position.latitude, position.longitude);
+
+    CameraPosition camPosition =
+        CameraPosition(target: latLngPosition, zoom: 14);
+
+    newMapController.animateCamera(CameraUpdate.newCameraPosition(camPosition));
+  }
+
   static final CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
@@ -25,7 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        drawer: Drawer(child: DrawerU()),
         appBar: AppBar(
+            iconTheme: IconThemeData(color: Colors.black),
             title: Text(
               "Uber",
               style: TextStyle(color: Colors.black),
@@ -34,12 +75,20 @@ class _HomeScreenState extends State<HomeScreen> {
         body: Stack(
           children: [
             GoogleMap(
+              padding: EdgeInsets.only(bottom: bottomPadding),
               mapType: MapType.normal,
               myLocationButtonEnabled: true,
+              myLocationEnabled: true,
+              zoomGesturesEnabled: true,
+              zoomControlsEnabled: true,
               initialCameraPosition: _kGooglePlex,
               onMapCreated: (GoogleMapController controller) {
                 controllerMap.complete(controller);
                 newMapController = controller;
+                setState(() {
+                  bottomPadding = 365;
+                });
+                positionLocator();
               },
             ),
             Positioned(
@@ -147,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
+                          Divider(),
                           SizedBox(
                             height: 30,
                           )
